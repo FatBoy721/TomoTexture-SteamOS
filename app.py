@@ -21,7 +21,7 @@ import swizzle
 import ugctex
 
 # ---------------------------------------------------------------------------
-# Backend constants & config (unchanged)
+# Backend constants & config
 # ---------------------------------------------------------------------------
 
 KNOWN_CANVAS_TYPES = (
@@ -53,20 +53,10 @@ BACKUP_DIRNAME = '_ugc-tool-backups'
 _IS_MAC = platform.system() == 'Darwin'
 _IS_LINUX = platform.system() == 'Linux'
 
-def _pick_existing(candidates: list[Path]) -> Path:
-    for p in candidates:
-        if p.is_dir():
-            return p
-    return candidates[0]
-
-
 if _IS_MAC:
     DEFAULT_SAVE_ROOT = Path.home() / 'Library' / 'Application Support' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000001'
 elif _IS_LINUX:
-    DEFAULT_SAVE_ROOT = _pick_existing([
-        Path.home() / '.var' / 'app' / 'org.ryujinx.Ryujinx' / 'config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004',
-        Path.home() / '.config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004',
-    ])
+    DEFAULT_SAVE_ROOT = Path.home() / '.config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004'
 else:
     DEFAULT_SAVE_ROOT = Path(os.path.expandvars(
         r'%APPDATA%\Ryujinx\bis\user\save\0000000000000004'))
@@ -103,7 +93,7 @@ def theme_color(color):
     return color
 
 # ---------------------------------------------------------------------------
-# Image helpers (unchanged)
+# Image helpers
 # ---------------------------------------------------------------------------
 
 
@@ -178,7 +168,7 @@ def composite_on_checker(img: Image.Image, size: int) -> Image.Image:
 
 
 # ---------------------------------------------------------------------------
-# CanvasEntry & scanner (unchanged)
+# CanvasEntry & scanner
 # ---------------------------------------------------------------------------
 
 
@@ -293,7 +283,7 @@ def _card(parent, **kw) -> ctk.CTkFrame:
 
 
 # ---------------------------------------------------------------------------
-# Dialogs (rewritten with CTk)
+# Dialogs
 # ---------------------------------------------------------------------------
 
 
@@ -523,7 +513,7 @@ class PreviewDialog(ctk.CTkToplevel):
 
 
 # ---------------------------------------------------------------------------
-# Main App (sidebar + detail layout)
+# Main App
 # ---------------------------------------------------------------------------
 
 
