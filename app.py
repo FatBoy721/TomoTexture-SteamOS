@@ -53,7 +53,6 @@ BACKUP_DIRNAME = '_ugc-tool-backups'
 _IS_MAC = platform.system() == 'Darwin'
 _IS_LINUX = platform.system() == 'Linux'
 
-
 def _pick_existing(candidates: list[Path]) -> Path:
     for p in candidates:
         if p.is_dir():
