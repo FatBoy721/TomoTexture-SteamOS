@@ -53,10 +53,21 @@ BACKUP_DIRNAME = '_ugc-tool-backups'
 _IS_MAC = platform.system() == 'Darwin'
 _IS_LINUX = platform.system() == 'Linux'
 
+
+def _pick_existing(candidates: list[Path]) -> Path:
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return candidates[0]
+
+
 if _IS_MAC:
     DEFAULT_SAVE_ROOT = Path.home() / 'Library' / 'Application Support' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000001'
 elif _IS_LINUX:
-    DEFAULT_SAVE_ROOT = Path.home() / '.config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004'
+    DEFAULT_SAVE_ROOT = _pick_existing([
+        Path.home() / '.var' / 'app' / 'org.ryujinx.Ryujinx' / 'config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004',
+        Path.home() / '.config' / 'Ryujinx' / 'bis' / 'user' / 'save' / '0000000000000004',
+    ])
 else:
     DEFAULT_SAVE_ROOT = Path(os.path.expandvars(
         r'%APPDATA%\Ryujinx\bis\user\save\0000000000000004'))
