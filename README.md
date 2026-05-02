@@ -2,7 +2,17 @@
 
 Linux port of [TomoTexture](https://github.com/AlfonsoMallozzi/TomoTexture), published with permission from [@AlfonsoMallozzi](https://github.com/AlfonsoMallozzi).
 
-> Ubuntu tested and working. Steam Deck needs further testing — open an issue if you try it!
+Tested on Ubuntu and Steam Deck Desktop Mode.
+
+## What it does
+
+TomoTexture lets you replace custom canvas textures in Tomodachi Life saves, including:
+
+- Foods
+- Goods and pets
+- Face paint
+
+Version `v1.0.1` fixes the blank Goods/Pets item type menu on Steam Deck and adds a **Check Updates** button.
 
 ---
 
@@ -14,6 +24,12 @@ Download the latest [`TomoTexture-x86_64.AppImage`](../../releases/latest), then
 chmod +x TomoTexture-x86_64.AppImage
 ./TomoTexture-x86_64.AppImage
 ```
+
+---
+
+## Update
+
+Use the **Check Updates** button in the app, or download the newest AppImage from [Releases](../../releases/latest).
 
 ---
 
