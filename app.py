@@ -382,6 +382,10 @@ def _entry_kind(entry: CanvasEntry) -> str:
     return 'texture sheet'
 
 
+def _uses_sheet_language(entry: CanvasEntry) -> bool:
+    return entry.base_name.startswith(('UgcCloth', 'UgcFacePaint'))
+
+
 # ---------------------------------------------------------------------------
 # CTk helpers
 # ---------------------------------------------------------------------------
@@ -1077,7 +1081,7 @@ class App(ctk.CTk):
         btn_row.pack(fill="x", pady=(16, 0))
 
         self._btn_replace = ctk.CTkButton(
-            btn_row, text="Import sheet", command=self._on_replace,
+            btn_row, text="Replace texture", command=self._on_replace,
             fg_color=ACCENT, hover_color=ACCENT_H,
             font=ctk.CTkFont(size=13, weight="bold"),
             height=38, state="disabled",
@@ -1085,7 +1089,7 @@ class App(ctk.CTk):
         self._btn_replace.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         self._btn_export = ctk.CTkButton(
-            btn_row, text="Export sheet", command=self._on_export,
+            btn_row, text="Export", command=self._on_export,
             fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
             font=ctk.CTkFont(size=13), height=38, state="disabled",
         )
@@ -1174,7 +1178,7 @@ class App(ctk.CTk):
             self._add_item_row(entry)
 
         self._set_status(
-            f"Found {len(entries)} editable texture(s). Select one, then click Import sheet.",
+            f"Found {len(entries)} editable texture(s). Select one, then click Replace texture.",
             SUCCESS)
 
     def _show_empty(self, title, sub):
@@ -1275,8 +1279,12 @@ class App(ctk.CTk):
         else:
             self._backup_lbl.configure(text="No backup yet", text_color=MUTED2)
 
-        self._btn_replace.configure(state="normal")
-        self._btn_export.configure(state="normal")
+        if _uses_sheet_language(entry):
+            self._btn_replace.configure(text="Import sheet", state="normal")
+            self._btn_export.configure(text="Export sheet", state="normal")
+        else:
+            self._btn_replace.configure(text="Replace texture", state="normal")
+            self._btn_export.configure(text="Export", state="normal")
         self._btn_revert.configure(state="normal" if entry.has_backup() else "disabled")
         self._btn_clear.configure(state="normal")
 
@@ -1285,7 +1293,7 @@ class App(ctk.CTk):
                 f"Selected: {entry.base_name}. Import a full {kind}; edit regions in an image editor first.",
                 ACCENT)
         else:
-            self._set_status(f"Selected: {entry.base_name}. Click Import sheet to choose an image.", ACCENT)
+            self._set_status(f"Selected: {entry.base_name}. Click Replace texture to choose an image.", ACCENT)
 
     def _clear_selection(self):
         self._selected = None
@@ -1303,8 +1311,8 @@ class App(ctk.CTk):
         self._name_lbl.configure(text="Select a texture from the list", text_color=MUTED)
         self._info_lbl.configure(text="PNG, JPG, WebP, GIF, BMP, and TIFF are accepted.")
         self._backup_lbl.configure(text="")
-        self._btn_replace.configure(state="disabled")
-        self._btn_export.configure(state="disabled")
+        self._btn_replace.configure(text="Replace texture", state="disabled")
+        self._btn_export.configure(text="Export", state="disabled")
         self._btn_revert.configure(state="disabled")
         self._btn_clear.configure(state="disabled")
 
@@ -1353,7 +1361,11 @@ class App(ctk.CTk):
             target_w, target_h = type_dlg.result_size
 
         src = filedialog.askopenfilename(
-            title=f'Import texture sheet for {entry.base_name}',
+            title=(
+                f'Import texture sheet for {entry.base_name}'
+                if _uses_sheet_language(entry)
+                else f'Select image for {entry.base_name}'
+            ),
             filetypes=[
                 ('Image files', '*.png *.jpg *.jpeg *.bmp *.webp *.gif *.tiff *.tif'),
                 ('PNG files', '*.png'),
@@ -1424,7 +1436,11 @@ class App(ctk.CTk):
         if not entry:
             return
         dest = filedialog.asksaveasfilename(
-            title=f'Export {entry.base_name} texture sheet as PNG',
+            title=(
+                f'Export {entry.base_name} texture sheet as PNG'
+                if _uses_sheet_language(entry)
+                else f'Export {entry.base_name} as PNG'
+            ),
             defaultextension='.png',
             initialfile=f'{entry.base_name}.png',
             filetypes=[('PNG', '*.png'), ('All files', '*.*')],
