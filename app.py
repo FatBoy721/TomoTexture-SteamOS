@@ -1199,25 +1199,33 @@ class App(ctk.CTk):
 
         slots_str = ', '.join(sorted(entry.paths.keys()))
         backup_str = " · Backup" if entry.has_backup() else ""
-        text = f"  {entry.base_name}\n  {slots_str}{backup_str}"
-
-        btn = ctk.CTkButton(
+        row = ctk.CTkFrame(
             self._item_scroll,
-            image=ctk_img,
-            text=text,
-            compound="left",
-            anchor="w",
             fg_color=SURF2,
-            hover_color=SURF_SEL,
-            text_color=FG,
             corner_radius=8,
             height=64,
-            font=ctk.CTkFont(size=11),
-            command=lambda ent=entry: self._on_item_selected(ent),
         )
-        btn.pack(fill="x", pady=(0, 4), padx=2)
+        row.pack(fill="x", pady=(0, 4), padx=2)
+        row.pack_propagate(False)
 
-        self._item_rows[entry.base_name] = btn
+        thumb_holder = ctk.CTkFrame(row, width=56, height=56, fg_color="transparent")
+        thumb_holder.pack(side="left", padx=(8, 8), pady=4)
+        thumb_holder.pack_propagate(False)
+        if ctk_img is not None:
+            ctk.CTkLabel(thumb_holder, image=ctk_img, text="").place(
+                relx=0.5, rely=0.5, anchor="center")
+
+        text_col = ctk.CTkFrame(row, fg_color="transparent")
+        text_col.pack(side="left", fill="both", expand=True, pady=(8, 6))
+        name_lbl = _lbl(text_col, entry.base_name, size=11, weight="bold", color=FG, anchor="w")
+        name_lbl.pack(fill="x", anchor="w")
+        slot_lbl = _lbl(text_col, f"{slots_str}{backup_str}", size=10, color=MUTED2, anchor="w")
+        slot_lbl.pack(fill="x", anchor="w", pady=(2, 0))
+
+        for widget in (row, thumb_holder, text_col, name_lbl, slot_lbl):
+            widget.bind("<Button-1>", lambda _e, ent=entry: self._on_item_selected(ent))
+
+        self._item_rows[entry.base_name] = row
 
     @staticmethod
     def _all_widgets(root) -> list:
