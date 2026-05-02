@@ -2,19 +2,7 @@
 
 Linux port of [TomoTexture](https://github.com/AlfonsoMallozzi/TomoTexture), published with permission from [@AlfonsoMallozzi](https://github.com/AlfonsoMallozzi).
 
-Tested on Ubuntu and Steam Deck Desktop Mode. Bazzite and other Arch-based systems may vary, so please open an issue if a popup or file picker still appears blank.
-
-## What it does
-
-TomoTexture lets you replace custom canvas textures in Tomodachi Life saves, including:
-
-- Foods
-- Goods and pets
-- Face paint
-
-Version `v1.0.2` addresses blank replacement popups reported on Steam Deck/Bazzite-style Linux setups and includes a **Check Updates** button.
-
----
+TomoTexture edits custom textures in Tomodachi Life saves, including food, goods, clothing, and face paint.
 
 ## Install
 
@@ -25,14 +13,6 @@ chmod +x TomoTexture-x86_64.AppImage
 ./TomoTexture-x86_64.AppImage
 ```
 
----
-
-## Update
-
-Use the **Check Updates** button in the app, or download the newest AppImage from [Releases](../../releases/latest).
-
----
-
 ## Run from source
 
 ```bash
@@ -41,15 +21,18 @@ sudo pacman -S python tk                                # Arch/SteamOS
 
 git clone https://github.com/FatBoy721/TomoTexture-SteamOS.git
 cd TomoTexture-SteamOS
-python3 -m venv venv && source venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 python3 app.py
 ```
 
----
+## Notes
+
+- Use the in-app **Check Updates** button or download the newest AppImage from [Releases](../../releases/latest).
+- Always keep a backup of your save before editing.
 
 ## Credits
 
-- **[@AlfonsoMallozzi](https://github.com/AlfonsoMallozzi)** — original [TomoTexture](https://github.com/AlfonsoMallozzi/TomoTexture)
-
-macOS port: [FatBoy721/TomoTexture-macOS](https://github.com/FatBoy721/TomoTexture-macOS)
+- [@AlfonsoMallozzi](https://github.com/AlfonsoMallozzi) - original [TomoTexture](https://github.com/AlfonsoMallozzi/TomoTexture)
+- macOS port: [FatBoy721/TomoTexture-macOS](https://github.com/FatBoy721/TomoTexture-macOS)
