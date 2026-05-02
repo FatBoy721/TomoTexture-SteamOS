@@ -12,7 +12,7 @@ TomoTexture lets you replace custom canvas textures in Tomodachi Life saves, inc
 - Goods and pets
 - Face paint
 
-Version `v1.0.1` fixes the blank Goods/Pets item type menu on Steam Deck and adds a **Check Updates** button.
+Version `v1.0.2` fixes blank replacement popups on Steam Deck, Arch, and Bazzite, and includes a **Check Updates** button.
 
 ---
 

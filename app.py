@@ -49,7 +49,7 @@ GOODS_TYPES = {
     'Book (185x256)':     (185, 256),
     'Games (256x144)':    (256, 144),
 }
-APP_VERSION = 'v1.0.1'
+APP_VERSION = 'v1.0.2'
 LATEST_RELEASE_API = 'https://api.github.com/repos/FatBoy721/TomoTexture-SteamOS/releases/latest'
 RELEASES_URL = 'https://github.com/FatBoy721/TomoTexture-SteamOS/releases/latest'
 PREVIEW_SIZE = 360
@@ -389,7 +389,7 @@ class ItemTypeDialog(tk.Toplevel):
         self.destroy()
 
 
-class ImageFitDialog(ctk.CTkToplevel):
+class ImageFitDialog(tk.Toplevel):
 
     def __init__(self, master, img: Image.Image, target_size: tuple[int, int]):
         super().__init__(master)
@@ -398,13 +398,21 @@ class ImageFitDialog(ctk.CTkToplevel):
         self.title('Resize Required')
         self.resizable(False, False)
         self.transient(master)
-        self.grab_set()
+        self.configure(bg=theme_color(SURF))
 
-        _lbl(self, 'Resize Required', size=18, weight="bold").pack(
-            padx=24, pady=(20, 4), anchor='w')
-        _lbl(self,
-             f'Your image is {img.width}x{img.height}. Target is {w}x{h}.\nChoose how to fit:',
-             size=11, color=MUTED2).pack(padx=24, anchor='w')
+        content = tk.Frame(self, bg=theme_color(SURF), padx=24, pady=18)
+        content.pack(fill='both', expand=True)
+
+        tk.Label(
+            content, text='Resize Required', bg=theme_color(SURF),
+            fg=theme_color(FG), font=('Helvetica', 18, 'bold'),
+        ).pack(anchor='w')
+        tk.Label(
+            content,
+            text=f'Your image is {img.width}x{img.height}. Target is {w}x{h}.\nChoose how to fit:',
+            bg=theme_color(SURF), fg=theme_color(MUTED2),
+            font=('Helvetica', 11), justify='left',
+        ).pack(anchor='w', pady=(4, 10))
 
         options = [
             ('Crop (Fill)', 'crop', 'Scales up and crops to fill.'),
@@ -412,47 +420,80 @@ class ImageFitDialog(ctk.CTkToplevel):
             ('Stretch', 'stretch', 'Stretches to exact target size.'),
         ]
 
-        self._fit = tk.StringVar(value='crop')
+        self._fit = tk.StringVar(self, value='crop')
         for label, val, desc in options:
-            row = ctk.CTkFrame(self, fg_color=SURF2, corner_radius=8,
-                               border_width=1, border_color=BORDER)
-            row.pack(fill='x', padx=24, pady=3)
-            tk.Radiobutton(row, text=label, variable=self._fit, value=val,
-                           bg=theme_color(SURF2), fg=theme_color(FG),
-                           selectcolor=theme_color(BG),
-                           activebackground=theme_color(SURF2),
-                           activeforeground=theme_color(FG),
-                           font=("Helvetica", 12, "bold"),
-                           highlightthickness=0, bd=0).pack(side='left', padx=12, pady=8)
-            _lbl(row, desc, size=10, color=MUTED2).pack(side='left', padx=(0, 12))
+            row = tk.Frame(
+                content, bg=theme_color(SURF2),
+                highlightthickness=1, highlightbackground=theme_color(BORDER),
+                padx=10, pady=8,
+            )
+            row.pack(fill='x', pady=3)
+            tk.Radiobutton(
+                row, text=label, variable=self._fit, value=val,
+                bg=theme_color(SURF2), fg=theme_color(FG),
+                selectcolor=theme_color(BG),
+                activebackground=theme_color(SURF2),
+                activeforeground=theme_color(FG),
+                font=('Helvetica', 12, 'bold'),
+                highlightthickness=0, bd=0,
+            ).pack(side='left')
+            tk.Label(
+                row, text=desc, bg=theme_color(SURF2),
+                fg=theme_color(MUTED2), font=('Helvetica', 10),
+            ).pack(side='left', padx=(8, 0))
 
-        tip = ctk.CTkFrame(self, fg_color="transparent")
-        tip.pack(fill='x', padx=24, pady=(10, 0))
-        _lbl(tip, 'Tip: Use transparent PNGs for best results.', size=10, color=MUTED2).pack(side='left')
-        link = ctk.CTkLabel(tip, text='remove.bg', text_color=ACCENT,
-                            font=ctk.CTkFont(size=10, weight="bold"), cursor='hand2')
+        tip = tk.Frame(content, bg=theme_color(SURF))
+        tip.pack(fill='x', pady=(10, 0))
+        tk.Label(
+            tip, text='Tip: Use transparent PNGs for best results.',
+            bg=theme_color(SURF), fg=theme_color(MUTED2),
+            font=('Helvetica', 10),
+        ).pack(side='left')
+        link = tk.Label(
+            tip, text='remove.bg', bg=theme_color(SURF),
+            fg=theme_color(ACCENT), font=('Helvetica', 10, 'bold'),
+            cursor='hand2',
+        )
         link.pack(side='left', padx=(6, 0))
         link.bind('<Button-1>', lambda e: webbrowser.open('https://www.remove.bg'))
 
-        btns = ctk.CTkFrame(self, fg_color="transparent")
-        btns.pack(padx=24, pady=16, fill='x')
-        ctk.CTkButton(btns, text='Cancel', command=self._cancel,
-                      fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
-                      width=90).pack(side='right', padx=(8, 0))
-        ctk.CTkButton(btns, text='Apply', command=lambda: self._apply(img, target_size),
-                      fg_color=ACCENT, hover_color=ACCENT_H,
-                      width=90).pack(side='right')
+        btns = tk.Frame(content, bg=theme_color(SURF))
+        btns.pack(pady=(16, 0), fill='x')
+        tk.Button(
+            btns, text='Cancel', command=self._cancel,
+            bg=theme_color(SURF2), fg=theme_color(MUTED2),
+            activebackground=theme_color(BORDER),
+            activeforeground=theme_color(FG),
+            relief='flat', bd=0, highlightthickness=1,
+            highlightbackground=theme_color(BORDER),
+            font=('Helvetica', 11), padx=18, pady=6,
+        ).pack(side='right', padx=(8, 0))
+        tk.Button(
+            btns, text='Apply', command=lambda: self._apply(img, target_size),
+            bg=theme_color(ACCENT), fg='white',
+            activebackground=theme_color(ACCENT_H),
+            activeforeground='white',
+            relief='flat', bd=0, highlightthickness=0,
+            font=('Helvetica', 11, 'bold'), padx=18, pady=6,
+        ).pack(side='right')
 
         self.protocol('WM_DELETE_WINDOW', self._cancel)
         self.bind('<Escape>', lambda e: self._cancel())
-        self.after(50, self._center)
+        self.bind('<Return>', lambda e: self._apply(img, target_size))
+        self.update_idletasks()
+        self.minsize(420, self.winfo_reqheight())
+        self.geometry(f'520x{self.winfo_reqheight()}')
+        self.after(50, self._show_modal)
 
-    def _center(self):
+    def _show_modal(self):
         self.update_idletasks()
         w, h = self.winfo_width(), self.winfo_height()
         px, py = self.master.winfo_rootx(), self.master.winfo_rooty()
         pw, ph = self.master.winfo_width(), self.master.winfo_height()
         self.geometry(f'+{max(px + (pw - w) // 2, 0)}+{max(py + (ph - h) // 3, 0)}')
+        self.lift()
+        self.focus_force()
+        self.grab_set()
 
     def _apply(self, img, target_size):
         self.result_img = load_image_rgba(
@@ -464,7 +505,7 @@ class ImageFitDialog(ctk.CTkToplevel):
         self.destroy()
 
 
-class ConfirmReplaceDialog(ctk.CTkToplevel):
+class ConfirmReplaceDialog(tk.Toplevel):
 
     def __init__(self, master, entry: CanvasEntry, new_image: Image.Image, target_slots: set[str]):
         super().__init__(master)
@@ -472,59 +513,99 @@ class ConfirmReplaceDialog(ctk.CTkToplevel):
         self.title(f'Confirm Replace — {entry.base_name}')
         self.resizable(False, False)
         self.transient(master)
-        self.grab_set()
+        self.configure(bg=theme_color(SURF))
 
-        _lbl(self, f'Replace {entry.base_name}?', size=18, weight="bold").pack(
-            padx=24, pady=(20, 4), anchor='w')
+        content = tk.Frame(self, bg=theme_color(SURF), padx=24, pady=18)
+        content.pack(fill='both', expand=True)
+
+        tk.Label(
+            content, text=f'Replace {entry.base_name}?',
+            bg=theme_color(SURF), fg=theme_color(FG),
+            font=('Helvetica', 18, 'bold'),
+        ).pack(anchor='w')
 
         slots_str = ', '.join(sorted(target_slots)) or '—'
-        _lbl(self, f'Slot(s): {slots_str}\nA backup is saved automatically on first replace.',
-             size=11, color=MUTED2).pack(padx=24, anchor='w')
+        tk.Label(
+            content,
+            text=f'Slot(s): {slots_str}\nA backup is saved automatically on first replace.',
+            bg=theme_color(SURF), fg=theme_color(MUTED2),
+            font=('Helvetica', 11), justify='left',
+        ).pack(anchor='w', pady=(4, 14))
 
-        body = ctk.CTkFrame(self, fg_color="transparent")
-        body.pack(padx=24, pady=18)
+        body = tk.Frame(content, bg=theme_color(SURF))
+        body.pack()
 
         cur_img = canvas_file_to_image(entry.primary_path())
         cur_composite = composite_on_checker(cur_img, PREVIEW_SIZE)
         new_composite = composite_on_checker(new_image, PREVIEW_SIZE)
 
-        self._cur_ctk = ctk.CTkImage(light_image=cur_composite, dark_image=cur_composite,
-                                     size=(PREVIEW_SIZE, PREVIEW_SIZE))
-        self._new_ctk = ctk.CTkImage(light_image=new_composite, dark_image=new_composite,
-                                     size=(PREVIEW_SIZE, PREVIEW_SIZE))
+        self._cur_photo = ImageTk.PhotoImage(cur_composite)
+        self._new_photo = ImageTk.PhotoImage(new_composite)
 
-        col_cur = ctk.CTkFrame(body, fg_color="transparent")
+        col_cur = tk.Frame(body, bg=theme_color(SURF))
         col_cur.grid(row=0, column=0, padx=(0, 8))
-        _lbl(col_cur, 'CURRENT', size=9, weight="bold", color=MUTED2).pack(anchor='w', pady=(0, 4))
-        ctk.CTkLabel(col_cur, image=self._cur_ctk, text='').pack()
+        tk.Label(
+            col_cur, text='CURRENT', bg=theme_color(SURF),
+            fg=theme_color(MUTED2), font=('Helvetica', 9, 'bold'),
+        ).pack(anchor='w', pady=(0, 4))
+        tk.Label(
+            col_cur, image=self._cur_photo, text='', bd=0,
+            highlightthickness=0, bg=theme_color(SURF),
+        ).pack()
 
-        _lbl(body, '→', size=24, weight="bold", color=ACCENT).grid(row=0, column=1, padx=10)
+        tk.Label(
+            body, text='>', bg=theme_color(SURF),
+            fg=theme_color(ACCENT), font=('Helvetica', 24, 'bold'),
+        ).grid(row=0, column=1, padx=10)
 
-        col_new = ctk.CTkFrame(body, fg_color="transparent")
+        col_new = tk.Frame(body, bg=theme_color(SURF))
         col_new.grid(row=0, column=2, padx=(8, 0))
-        _lbl(col_new, 'NEW', size=9, weight="bold", color=SUCCESS).pack(anchor='w', pady=(0, 4))
-        ctk.CTkLabel(col_new, image=self._new_ctk, text='').pack()
+        tk.Label(
+            col_new, text='NEW', bg=theme_color(SURF),
+            fg=theme_color(SUCCESS), font=('Helvetica', 9, 'bold'),
+        ).pack(anchor='w', pady=(0, 4))
+        tk.Label(
+            col_new, image=self._new_photo, text='', bd=0,
+            highlightthickness=0, bg=theme_color(SURF),
+        ).pack()
 
-        btns = ctk.CTkFrame(self, fg_color="transparent")
-        btns.pack(padx=24, pady=(0, 20), fill='x')
-        ctk.CTkButton(btns, text='Cancel', command=self._cancel,
-                      fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
-                      width=100).pack(side='right', padx=(8, 0))
-        ctk.CTkButton(btns, text='Replace', command=self._confirm,
-                      fg_color=ACCENT, hover_color=ACCENT_H,
-                      width=100).pack(side='right')
+        btns = tk.Frame(content, bg=theme_color(SURF))
+        btns.pack(pady=(16, 0), fill='x')
+        tk.Button(
+            btns, text='Cancel', command=self._cancel,
+            bg=theme_color(SURF2), fg=theme_color(MUTED2),
+            activebackground=theme_color(BORDER),
+            activeforeground=theme_color(FG),
+            relief='flat', bd=0, highlightthickness=1,
+            highlightbackground=theme_color(BORDER),
+            font=('Helvetica', 11), padx=18, pady=6,
+        ).pack(side='right', padx=(8, 0))
+        tk.Button(
+            btns, text='Replace', command=self._confirm,
+            bg=theme_color(ACCENT), fg='white',
+            activebackground=theme_color(ACCENT_H),
+            activeforeground='white',
+            relief='flat', bd=0, highlightthickness=0,
+            font=('Helvetica', 11, 'bold'), padx=18, pady=6,
+        ).pack(side='right')
 
         self.protocol('WM_DELETE_WINDOW', self._cancel)
         self.bind('<Escape>', lambda e: self._cancel())
         self.bind('<Return>', lambda e: self._confirm())
-        self.after(50, self._center)
+        self.update_idletasks()
+        self.minsize(760, self.winfo_reqheight())
+        self.geometry(f'820x{self.winfo_reqheight()}')
+        self.after(50, self._show_modal)
 
-    def _center(self):
+    def _show_modal(self):
         self.update_idletasks()
         w, h = self.winfo_width(), self.winfo_height()
         px, py = self.master.winfo_rootx(), self.master.winfo_rooty()
         pw, ph = self.master.winfo_width(), self.master.winfo_height()
         self.geometry(f'+{max(px + (pw - w) // 2, 0)}+{max(py + (ph - h) // 3, 0)}')
+        self.lift()
+        self.focus_force()
+        self.grab_set()
 
     def _confirm(self):
         self.result = True
