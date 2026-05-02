@@ -151,9 +151,33 @@ def load_image_rgba(path, target_w: int = 256, target_h: int = 256,
         img = padded
 
     arr = np.array(img, dtype=np.uint8)
-    mask = arr[..., 3] == 0
-    if mask.any():
-        arr[mask] = (0, 0, 0, 0)
+    arr[arr[..., 3] < 20, 3] = 0
+    arr[arr[..., 3] > 0, 3] = 255
+    arr[arr[..., 3] == 0] = 0
+    return Image.fromarray(arr, mode='RGBA')
+
+
+def srgb_to_linear_image(img: Image.Image) -> Image.Image:
+    arr = np.array(img.convert('RGBA'), dtype=np.uint8)
+    rgb = arr[..., :3].astype(np.float32) / 255.0
+    linear = np.where(
+        rgb <= 0.04045,
+        rgb / 12.92,
+        ((rgb + 0.055) / 1.055) ** 2.4,
+    )
+    arr[..., :3] = np.clip(np.rint(linear * 255.0), 0, 255).astype(np.uint8)
+    return Image.fromarray(arr, mode='RGBA')
+
+
+def linear_to_srgb_image(img: Image.Image) -> Image.Image:
+    arr = np.array(img.convert('RGBA'), dtype=np.uint8)
+    rgb = arr[..., :3].astype(np.float32) / 255.0
+    srgb = np.where(
+        rgb <= 0.0031308,
+        rgb * 12.92,
+        1.055 * (rgb ** (1.0 / 2.4)) - 0.055,
+    )
+    arr[..., :3] = np.clip(np.rint(srgb * 255.0), 0, 255).astype(np.uint8)
     return Image.fromarray(arr, mode='RGBA')
 
 
@@ -170,7 +194,7 @@ def _infer_canvas_size(raw_size: int) -> tuple[int, int]:
 def image_to_canvas_bytes(img: Image.Image) -> bytes:
     if img.mode != 'RGBA':
         img = img.convert('RGBA')
-    linear = img.tobytes()
+    linear = srgb_to_linear_image(img).tobytes()
     if img.size == (swizzle.CANVAS_W, swizzle.CANVAS_H):
         swizzled = swizzle.swizzle(linear)
     else:
@@ -185,7 +209,8 @@ def canvas_file_to_image(path: Path) -> Image.Image:
         linear = swizzle.deswizzle(raw)
     else:
         linear = swizzle.nsw_deswizzle(raw, size, (1, 1), swizzle.BPP, 4)
-    return Image.frombytes('RGBA', size, linear)
+    img = Image.frombytes('RGBA', size, linear)
+    return linear_to_srgb_image(img)
 
 
 def make_checker_bg(size: int, sq: int = 8,
