@@ -6,6 +6,9 @@ import traceback
 import platform
 import webbrowser
 import math
+import json
+import threading
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -46,6 +49,9 @@ GOODS_TYPES = {
     'Book (185x256)':     (185, 256),
     'Games (256x144)':    (256, 144),
 }
+APP_VERSION = 'v1.0.1'
+LATEST_RELEASE_API = 'https://api.github.com/repos/FatBoy721/TomoTexture-SteamOS/releases/latest'
+RELEASES_URL = 'https://github.com/FatBoy721/TomoTexture-SteamOS/releases/latest'
 THUMB_SIZE = 120
 PREVIEW_SIZE = 360
 BACKUP_DIRNAME = '_ugc-tool-backups'
@@ -297,7 +303,7 @@ def _card(parent, **kw) -> ctk.CTkFrame:
 # ---------------------------------------------------------------------------
 
 
-class ItemTypeDialog(ctk.CTkToplevel):
+class ItemTypeDialog(tk.Toplevel):
 
     def __init__(self, master, base_name: str, preview_img: Optional[Image.Image] = None):
         super().__init__(master)
@@ -306,46 +312,74 @@ class ItemTypeDialog(ctk.CTkToplevel):
         self.title('Select Item Type')
         self.resizable(False, False)
         self.transient(master)
-        self.grab_set()
+        self.configure(bg=theme_color(SURF))
 
-        _lbl(self, f'Configure {base_name}', size=18, weight="bold").pack(
-            padx=24, pady=(20, 4), anchor='w')
-        _lbl(self, 'What type of Goods item is this?\nThis sets the canvas resolution.',
-             size=11, color=MUTED2).pack(padx=24, anchor='w')
+        content = tk.Frame(self, bg=theme_color(SURF), padx=24, pady=18)
+        content.pack(fill='both', expand=True)
+
+        tk.Label(
+            content, text=f'Configure {base_name}', bg=theme_color(SURF),
+            fg=theme_color(FG), font=('Helvetica', 18, 'bold'),
+        ).pack(anchor='w')
+        tk.Label(
+            content,
+            text='What type of Goods/Pets item is this?\nThis sets the canvas resolution.',
+            bg=theme_color(SURF), fg=theme_color(MUTED2),
+            font=('Helvetica', 11), justify='left',
+        ).pack(anchor='w', pady=(4, 0))
 
         if preview_img is not None:
-            _lbl(self, 'Current canvas:', size=10, color=MUTED2).pack(
-                padx=24, pady=(12, 4), anchor='w')
+            tk.Label(
+                content, text='Current canvas:', bg=theme_color(SURF),
+                fg=theme_color(MUTED2), font=('Helvetica', 10),
+            ).pack(anchor='w', pady=(12, 4))
             preview_composite = composite_on_checker(preview_img, 180)
-            self._preview_photo = ctk.CTkImage(
-                light_image=preview_composite, dark_image=preview_composite,
-                size=(180, 180))
-            ctk.CTkLabel(self, image=self._preview_photo, text='').pack(padx=24, anchor='w')
+            self._preview_photo = ImageTk.PhotoImage(preview_composite)
+            tk.Label(
+                content, image=self._preview_photo, text='', bd=0,
+                highlightthickness=0, bg=theme_color(SURF),
+            ).pack(anchor='w')
 
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(padx=24, pady=16, fill='x')
+        btn_frame = tk.Frame(content, bg=theme_color(SURF))
+        btn_frame.pack(pady=(16, 10), fill='x')
 
         for label, size in GOODS_TYPES.items():
-            ctk.CTkButton(
+            tk.Button(
                 btn_frame, text=label, command=lambda s=size: self._select(s),
-                fg_color=SURF2, hover_color=BORDER, text_color=FG,
-                font=ctk.CTkFont(size=12), height=40, corner_radius=8,
+                bg=theme_color(SURF2), fg=theme_color(FG),
+                activebackground=theme_color(BORDER),
+                activeforeground=theme_color(FG),
+                relief='flat', bd=0, highlightthickness=1,
+                highlightbackground=theme_color(BORDER),
+                font=('Helvetica', 12), height=2,
             ).pack(fill='x', pady=3)
 
-        ctk.CTkButton(self, text='Cancel', command=self._cancel,
-                      fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
-                      width=90).pack(anchor='e', padx=24, pady=(0, 16))
+        tk.Button(
+            content, text='Cancel', command=self._cancel,
+            bg=theme_color(SURF2), fg=theme_color(MUTED2),
+            activebackground=theme_color(BORDER),
+            activeforeground=theme_color(FG),
+            relief='flat', bd=0, highlightthickness=1,
+            highlightbackground=theme_color(BORDER),
+            font=('Helvetica', 11), padx=18, pady=6,
+        ).pack(anchor='e')
 
         self.protocol('WM_DELETE_WINDOW', self._cancel)
         self.bind('<Escape>', lambda e: self._cancel())
-        self.after(50, self._center)
+        self.update_idletasks()
+        self.minsize(320, self.winfo_reqheight())
+        self.geometry(f'360x{self.winfo_reqheight()}')
+        self.after(50, self._show_modal)
 
-    def _center(self):
+    def _show_modal(self):
         self.update_idletasks()
         w, h = self.winfo_width(), self.winfo_height()
         px, py = self.master.winfo_rootx(), self.master.winfo_rooty()
         pw, ph = self.master.winfo_width(), self.master.winfo_height()
         self.geometry(f'+{max(px + (pw - w) // 2, 0)}+{max(py + (ph - h) // 3, 0)}')
+        self.lift()
+        self.focus_force()
+        self.grab_set()
 
     def _select(self, size):
         self.result_size = size
@@ -595,6 +629,14 @@ class App(ctk.CTk):
         )
         self._mode_switch.pack(side="right", padx=18)
 
+        self._update_btn = ctk.CTkButton(
+            hdr, text="Check Updates", width=112, height=28,
+            command=self._on_check_updates,
+            fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
+            font=ctk.CTkFont(size=11),
+        )
+        self._update_btn.pack(side="right", padx=(0, 10))
+
     def _toggle_theme(self):
         if self._theme_animating:
             return
@@ -656,6 +698,63 @@ class App(ctk.CTk):
         self._mode_switch.configure(state="normal")
         self._theme_animating = False
         self._sync_preview_bg()
+
+    def _on_check_updates(self):
+        self._update_btn.configure(state="disabled", text="Checking...")
+        self._set_status("Checking for updates...", ACCENT)
+        threading.Thread(target=self._check_updates_worker, daemon=True).start()
+
+    def _check_updates_worker(self):
+        try:
+            req = urllib.request.Request(
+                LATEST_RELEASE_API,
+                headers={
+                    'Accept': 'application/vnd.github+json',
+                    'User-Agent': f'TomoTexture/{APP_VERSION}',
+                },
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode('utf-8'))
+            latest = data.get('tag_name', '').strip()
+            release_url = data.get('html_url') or RELEASES_URL
+            self.after(0, lambda: self._handle_update_result(latest, release_url))
+        except Exception as exc:
+            self.after(0, lambda: self._handle_update_error(str(exc)))
+
+    def _handle_update_result(self, latest: str, release_url: str):
+        self._update_btn.configure(state="normal", text="Check Updates")
+        if not latest:
+            self._set_status("Could not read latest release version.", WARN)
+            messagebox.showwarning(
+                'Update check failed',
+                'GitHub did not return a latest release version.',
+            )
+            return
+
+        if self._version_tuple(latest) > self._version_tuple(APP_VERSION):
+            self._set_status(f"Update available: {latest}", SUCCESS)
+            if messagebox.askyesno(
+                'Update available',
+                f'TomoTexture {latest} is available.\n\nOpen the download page?',
+            ):
+                webbrowser.open(release_url)
+            return
+
+        self._set_status(f"TomoTexture is up to date ({APP_VERSION}).", SUCCESS)
+        messagebox.showinfo('No update available', f'You are on {APP_VERSION}.')
+
+    def _handle_update_error(self, error: str):
+        self._update_btn.configure(state="normal", text="Check Updates")
+        self._set_status("Update check failed.", ERROR)
+        messagebox.showerror(
+            'Update check failed',
+            f'Could not check GitHub releases.\n\n{error}',
+        )
+
+    @staticmethod
+    def _version_tuple(version: str) -> tuple[int, ...]:
+        parts = re.findall(r'\d+', version)
+        return tuple(int(part) for part in parts) if parts else (0,)
 
     def _build_folder_row(self, parent):
         card = _card(parent)
