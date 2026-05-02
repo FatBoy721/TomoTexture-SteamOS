@@ -799,7 +799,8 @@ class App(ctk.CTk):
             release_url = data.get('html_url') or RELEASES_URL
             self.after(0, lambda: self._handle_update_result(latest, release_url))
         except Exception as exc:
-            self.after(0, lambda: self._handle_update_error(str(exc)))
+            error = str(exc)
+            self.after(0, lambda: self._handle_update_error(error))
 
     def _handle_update_result(self, latest: str, release_url: str):
         self._update_btn.configure(state="normal", text="Check Updates")
@@ -924,7 +925,7 @@ class App(ctk.CTk):
         self._preview_lbl.pack(pady=(0, 12))
         self._sync_preview_bg()
 
-        self._name_lbl = _lbl(self._detail_inner, "Select a canvas from the list",
+        self._name_lbl = _lbl(self._detail_inner, "Select a texture from the list",
                               size=14, weight="bold", color=MUTED)
         self._name_lbl.pack(anchor="w")
 
@@ -954,7 +955,7 @@ class App(ctk.CTk):
         btn_row.pack(fill="x", pady=(16, 0))
 
         self._btn_replace = ctk.CTkButton(
-            btn_row, text="Replace", command=self._on_replace,
+            btn_row, text="Replace texture", command=self._on_replace,
             fg_color=ACCENT, hover_color=ACCENT_H,
             font=ctk.CTkFont(size=13, weight="bold"),
             height=38, state="disabled",
@@ -1039,8 +1040,8 @@ class App(ctk.CTk):
         self._all_slots = all_slots
 
         if not entries:
-            self._show_empty("No canvases found", f"No *.canvas.zs under\n{root}")
-            self._set_status("No canvases found.", WARN)
+            self._show_empty("No editable textures found", f"No *.canvas.zs under\n{root}")
+            self._set_status("No editable textures found in that save folder.", WARN)
             self._rebuild_slots(all_slots)
             return
 
@@ -1051,7 +1052,7 @@ class App(ctk.CTk):
             self._add_item_row(entry)
 
         self._set_status(
-            f"Found {len(entries)} canvas(es) across {len(all_slots)} slot(s)",
+            f"Found {len(entries)} editable texture(s). Select one, then click Replace texture.",
             SUCCESS)
 
     def _show_empty(self, title, sub):
@@ -1154,7 +1155,7 @@ class App(ctk.CTk):
         self._btn_revert.configure(state="normal" if entry.has_backup() else "disabled")
         self._btn_clear.configure(state="normal")
 
-        self._set_status(f"Selected: {entry.base_name}", ACCENT)
+        self._set_status(f"Selected: {entry.base_name}. Click Replace texture to choose an image.", ACCENT)
 
     def _clear_selection(self):
         self._selected = None
@@ -1164,12 +1165,12 @@ class App(ctk.CTk):
             except Exception:
                 pass
         self._clear_detail()
-        self._set_status("Selection cleared. Pick a canvas from the list.", MUTED)
+        self._set_status("Selection cleared. Pick a texture from the list.", MUTED)
 
     def _clear_detail(self):
         self._detail_photo = None
         self._preview_lbl.configure(image="", text="")
-        self._name_lbl.configure(text="Select a canvas from the list", text_color=MUTED)
+        self._name_lbl.configure(text="Select a texture from the list", text_color=MUTED)
         self._info_lbl.configure(text="PNG, JPG, WebP, GIF, BMP, and TIFF are accepted.")
         self._backup_lbl.configure(text="")
         self._btn_replace.configure(state="disabled")
