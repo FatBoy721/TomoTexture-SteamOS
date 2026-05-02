@@ -49,6 +49,14 @@ GOODS_TYPES = {
     'Book (185x256)':     (185, 256),
     'Games (256x144)':    (256, 144),
 }
+CANVAS_SIZE_CANDIDATES = (
+    (256, 256),
+    (512, 512),
+    (512, 256),
+    (256, 512),
+    (1024, 512),
+    (512, 1024),
+)
 APP_VERSION = 'v1.0.2'
 LATEST_RELEASE_API = 'https://api.github.com/repos/FatBoy721/TomoTexture-SteamOS/releases/latest'
 RELEASES_URL = 'https://github.com/FatBoy721/TomoTexture-SteamOS/releases/latest'
@@ -136,7 +144,8 @@ def load_image_rgba(path, target_w: int = 256, target_h: int = 256,
         canvas.alpha_composite(img, dest=(ox, oy))
         img = canvas
 
-    if img.width != swizzle.CANVAS_W or img.height != swizzle.CANVAS_H:
+    if (target_w <= swizzle.CANVAS_W and target_h <= swizzle.CANVAS_H
+            and (img.width != swizzle.CANVAS_W or img.height != swizzle.CANVAS_H)):
         padded = Image.new('RGBA', (swizzle.CANVAS_W, swizzle.CANVAS_H), (0, 0, 0, 0))
         padded.paste(img, (0, 0))
         img = padded
@@ -148,16 +157,35 @@ def load_image_rgba(path, target_w: int = 256, target_h: int = 256,
     return Image.fromarray(arr, mode='RGBA')
 
 
+def _infer_canvas_size(raw_size: int) -> tuple[int, int]:
+    for size in CANVAS_SIZE_CANDIDATES:
+        if size[0] * size[1] * swizzle.BPP == raw_size:
+            return size
+    if raw_size % swizzle.BPP:
+        raise ValueError(f"Invalid RGBA canvas size: {raw_size} bytes")
+    pixels = raw_size // swizzle.BPP
+    raise ValueError(f"Unsupported canvas dimensions for {pixels} RGBA pixels")
+
+
 def image_to_canvas_bytes(img: Image.Image) -> bytes:
+    if img.mode != 'RGBA':
+        img = img.convert('RGBA')
     linear = img.tobytes()
-    swizzled = swizzle.swizzle(linear)
+    if img.size == (swizzle.CANVAS_W, swizzle.CANVAS_H):
+        swizzled = swizzle.swizzle(linear)
+    else:
+        swizzled = swizzle.nsw_swizzle(linear, img.size, (1, 1), swizzle.BPP, 4)
     return zstd.ZstdCompressor(level=19).compress(swizzled)
 
 
 def canvas_file_to_image(path: Path) -> Image.Image:
     raw = zstd.ZstdDecompressor().decompress(path.read_bytes())
-    linear = swizzle.deswizzle(raw)
-    return Image.frombytes('RGBA', (swizzle.CANVAS_W, swizzle.CANVAS_H), linear)
+    size = _infer_canvas_size(len(raw))
+    if size == (swizzle.CANVAS_W, swizzle.CANVAS_H):
+        linear = swizzle.deswizzle(raw)
+    else:
+        linear = swizzle.nsw_deswizzle(raw, size, (1, 1), swizzle.BPP, 4)
+    return Image.frombytes('RGBA', size, linear)
 
 
 def make_checker_bg(size: int, sq: int = 8,
@@ -1208,14 +1236,14 @@ class App(ctk.CTk):
         if not entry:
             return
 
-        target_w, target_h = 256, 256
+        try:
+            current_img = canvas_file_to_image(entry.primary_path())
+            target_w, target_h = current_img.size
+        except Exception:
+            current_img = None
+            target_w, target_h = 256, 256
         if entry.base_name.startswith('UgcGoods'):
-            preview_img = None
-            try:
-                preview_img = canvas_file_to_image(entry.primary_path())
-            except Exception:
-                pass
-            type_dlg = ItemTypeDialog(self, entry.base_name, preview_img)
+            type_dlg = ItemTypeDialog(self, entry.base_name, current_img)
             self.wait_window(type_dlg)
             if type_dlg.result_size is None:
                 self._set_status("Replace cancelled.", MUTED)
