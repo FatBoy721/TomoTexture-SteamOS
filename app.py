@@ -18,7 +18,7 @@ from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 import zstandard as zstd
-from PIL import Image, ImageTk, ImageDraw
+from PIL import Image, ImageTk
 
 import swizzle
 import ugctex
@@ -52,7 +52,6 @@ GOODS_TYPES = {
 APP_VERSION = 'v1.0.1'
 LATEST_RELEASE_API = 'https://api.github.com/repos/FatBoy721/TomoTexture-SteamOS/releases/latest'
 RELEASES_URL = 'https://github.com/FatBoy721/TomoTexture-SteamOS/releases/latest'
-THUMB_SIZE = 120
 PREVIEW_SIZE = 360
 BACKUP_DIRNAME = '_ugc-tool-backups'
 
