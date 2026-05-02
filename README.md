@@ -2,7 +2,7 @@
 
 Linux port of [TomoTexture](https://github.com/AlfonsoMallozzi/TomoTexture), published with permission from [@AlfonsoMallozzi](https://github.com/AlfonsoMallozzi).
 
-Tested on Ubuntu and Steam Deck Desktop Mode.
+Tested on Ubuntu and Steam Deck Desktop Mode. Bazzite and other Arch-based systems may vary, so please open an issue if a popup or file picker still appears blank.
 
 ## What it does
 
@@ -12,7 +12,7 @@ TomoTexture lets you replace custom canvas textures in Tomodachi Life saves, inc
 - Goods and pets
 - Face paint
 
-Version `v1.0.2` fixes blank replacement popups on Steam Deck, Arch, and Bazzite, and includes a **Check Updates** button.
+Version `v1.0.2` addresses blank replacement popups reported on Steam Deck/Bazzite-style Linux setups and includes a **Check Updates** button.
 
 ---
 
