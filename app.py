@@ -253,9 +253,38 @@ class CanvasEntry:
             key=lambda p: p.stat().st_mtime,
         )
 
+    def companion_paths(self, slot: str) -> tuple[Path, Path]:
+        canvas_path = self.paths[slot]
+        stem = canvas_path.name.replace('.canvas.zs', '')
+        thumb_underscore = canvas_path.with_name(f'{stem}_Thumb_ugctex.zs')
+        thumb_dot = canvas_path.with_name(f'{stem}_Thumb.ugctex.zs')
+        return (
+            canvas_path.with_name(f'{stem}.ugctex.zs'),
+            thumb_underscore if thumb_underscore.exists() or not thumb_dot.exists() else thumb_dot,
+        )
+
+    def all_companion_paths(self, slot: str) -> tuple[Path, ...]:
+        canvas_path = self.paths[slot]
+        stem = canvas_path.name.replace('.canvas.zs', '')
+        return (
+            canvas_path.with_name(f'{stem}.ugctex.zs'),
+            canvas_path.with_name(f'{stem}_Thumb_ugctex.zs'),
+            canvas_path.with_name(f'{stem}_Thumb.ugctex.zs'),
+        )
+
+    def has_companions(self) -> bool:
+        for slot in self.paths:
+            if any(path.exists() for path in self.all_companion_paths(slot)):
+                return True
+        return False
+
     def backup_path(self, slot: str) -> Path:
         safe_slot = re.sub(r'[\\/]+', '_', slot).strip('_') or 'root'
         return self.save_root / BACKUP_DIRNAME / f'{safe_slot}__{self.base_name}.canvas.zs'
+
+    def companion_backup_path(self, slot: str, companion_path: Path) -> Path:
+        safe_slot = re.sub(r'[\\/]+', '_', slot).strip('_') or 'root'
+        return self.save_root / BACKUP_DIRNAME / f'{safe_slot}__{companion_path.name}'
 
     def has_backup(self) -> bool:
         return any(self.backup_path(s).exists() for s in self.paths)
@@ -294,6 +323,10 @@ class CanvasEntry:
             if not src.exists():
                 continue
             shutil.copy2(src, bak)
+            for companion in self.all_companion_paths(slot):
+                companion_bak = self.companion_backup_path(slot, companion)
+                if companion.exists() and not companion_bak.exists():
+                    shutil.copy2(companion, companion_bak)
 
 
 def _slot_key(save_root: Path, canvas_file: Path) -> str:
@@ -334,6 +367,19 @@ def find_canvases(save_root: Path, max_depth: int = 8) -> tuple[list[CanvasEntry
     result = [CanvasEntry(b, p, save_root)
               for b, p in sorted(entries.items())]
     return result, sorted(all_slots)
+
+
+def _entry_kind(entry: CanvasEntry) -> str:
+    name = entry.base_name
+    if name.startswith('UgcCloth'):
+        return 'clothing sheet'
+    if name.startswith('UgcFacePaint'):
+        return 'face paint sheet'
+    if name.startswith('UgcFood'):
+        return 'food texture'
+    if name.startswith('UgcGoods'):
+        return 'goods texture'
+    return 'texture sheet'
 
 
 # ---------------------------------------------------------------------------
@@ -563,6 +609,7 @@ class ConfirmReplaceDialog(tk.Toplevel):
     def __init__(self, master, entry: CanvasEntry, new_image: Image.Image, target_slots: set[str]):
         super().__init__(master)
         self.result = False
+        self.regenerate_companions = tk.BooleanVar(value=entry.has_companions())
         self.title(f'Confirm Replace — {entry.base_name}')
         self.resizable(False, False)
         self.transient(master)
@@ -622,6 +669,28 @@ class ConfirmReplaceDialog(tk.Toplevel):
             highlightthickness=0, bg=theme_color(SURF),
         ).pack()
 
+        if entry.has_companions():
+            companion_note = tk.Frame(content, bg=theme_color(SURF))
+            companion_note.pack(fill='x', pady=(12, 0))
+            tk.Checkbutton(
+                companion_note,
+                text='Regenerate companion .ugctex and thumbnail files',
+                variable=self.regenerate_companions,
+                bg=theme_color(SURF),
+                fg=theme_color(FG),
+                selectcolor=theme_color(BG),
+                activebackground=theme_color(SURF),
+                activeforeground=theme_color(FG),
+                font=('Helvetica', 10, 'bold'),
+                highlightthickness=0,
+            ).pack(anchor='w')
+            tk.Label(
+                companion_note,
+                text='Leave this on for clothing, food, and face paint unless you only want to edit the raw canvas.',
+                bg=theme_color(SURF), fg=theme_color(MUTED2),
+                font=('Helvetica', 9), justify='left',
+            ).pack(anchor='w', pady=(2, 0))
+
         btns = tk.Frame(content, bg=theme_color(SURF))
         btns.pack(pady=(16, 0), fill='x')
         tk.Button(
@@ -679,7 +748,7 @@ class PreviewDialog(ctk.CTkToplevel):
 
         _lbl(self, entry.base_name, size=16, weight="bold").pack(
             padx=20, pady=(16, 2), anchor='w')
-        _lbl(self, '256x256  RGBA  Swizzled', size=10, color=MUTED2).pack(
+        _lbl(self, f'{img.width}x{img.height}  RGBA  Swizzled', size=10, color=MUTED2).pack(
             padx=20, anchor='w')
 
         composite = composite_on_checker(img, 480)
@@ -945,7 +1014,7 @@ class App(ctk.CTk):
 
         header = ctk.CTkFrame(card, fg_color="transparent")
         header.pack(fill="x", padx=14, pady=(12, 6))
-        _lbl(header, "Canvases", size=13, weight="bold").pack(side="left")
+        _lbl(header, "Texture Sheets", size=13, weight="bold").pack(side="left")
         self._count_lbl = _lbl(header, "", size=10, color=MUTED2)
         self._count_lbl.pack(side="right")
 
@@ -958,7 +1027,7 @@ class App(ctk.CTk):
 
         self._empty_lbl = _lbl(
             self._item_scroll,
-            "No canvases found.\nSelect a save folder above.",
+            "No texture sheets found.\nSelect a save folder above.",
             size=11, color=MUTED, justify="center",
         )
         self._empty_lbl.pack(pady=40)
@@ -1008,7 +1077,7 @@ class App(ctk.CTk):
         btn_row.pack(fill="x", pady=(16, 0))
 
         self._btn_replace = ctk.CTkButton(
-            btn_row, text="Replace texture", command=self._on_replace,
+            btn_row, text="Import sheet", command=self._on_replace,
             fg_color=ACCENT, hover_color=ACCENT_H,
             font=ctk.CTkFont(size=13, weight="bold"),
             height=38, state="disabled",
@@ -1016,7 +1085,7 @@ class App(ctk.CTk):
         self._btn_replace.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         self._btn_export = ctk.CTkButton(
-            btn_row, text="Export", command=self._on_export,
+            btn_row, text="Export sheet", command=self._on_export,
             fg_color=SURF2, hover_color=BORDER, text_color=MUTED2,
             font=ctk.CTkFont(size=13), height=38, state="disabled",
         )
@@ -1105,7 +1174,7 @@ class App(ctk.CTk):
             self._add_item_row(entry)
 
         self._set_status(
-            f"Found {len(entries)} editable texture(s). Select one, then click Replace texture.",
+            f"Found {len(entries)} editable texture(s). Select one, then click Import sheet.",
             SUCCESS)
 
     def _show_empty(self, title, sub):
@@ -1196,7 +1265,10 @@ class App(ctk.CTk):
         self._name_lbl.configure(text=entry.base_name, text_color=FG)
 
         slots_str = ', '.join(sorted(entry.paths.keys()))
-        self._info_lbl.configure(text=f"Slots: {slots_str}")
+        size_text = f"{img.width}x{img.height}" if 'img' in locals() else "unknown size"
+        companion_text = "companions present" if entry.has_companions() else "canvas only"
+        kind = _entry_kind(entry)
+        self._info_lbl.configure(text=f"{kind.title()}: {size_text} | Slots: {slots_str} | {companion_text}")
 
         if entry.has_backup():
             self._backup_lbl.configure(text="Backup available", text_color=SUCCESS)
@@ -1208,7 +1280,12 @@ class App(ctk.CTk):
         self._btn_revert.configure(state="normal" if entry.has_backup() else "disabled")
         self._btn_clear.configure(state="normal")
 
-        self._set_status(f"Selected: {entry.base_name}. Click Replace texture to choose an image.", ACCENT)
+        if entry.base_name.startswith(('UgcCloth', 'UgcFacePaint')):
+            self._set_status(
+                f"Selected: {entry.base_name}. Import a full {kind}; edit regions in an image editor first.",
+                ACCENT)
+        else:
+            self._set_status(f"Selected: {entry.base_name}. Click Import sheet to choose an image.", ACCENT)
 
     def _clear_selection(self):
         self._selected = None
@@ -1276,7 +1353,7 @@ class App(ctk.CTk):
             target_w, target_h = type_dlg.result_size
 
         src = filedialog.askopenfilename(
-            title=f'Select image for {entry.base_name}',
+            title=f'Import texture sheet for {entry.base_name}',
             filetypes=[
                 ('Image files', '*.png *.jpg *.jpeg *.bmp *.webp *.gif *.tiff *.tif'),
                 ('PNG files', '*.png'),
@@ -1321,14 +1398,15 @@ class App(ctk.CTk):
             n = entry.write_bytes(compressed, target_slots)
 
             companion_count = 0
-            for slot, canvas_path in entry.paths.items():
-                if slot not in target_slots:
-                    continue
-                try:
-                    ugctex.write_companion_files(new_img, canvas_path)
-                    companion_count += 1
-                except Exception:
-                    pass
+            if dlg.regenerate_companions.get():
+                for slot, canvas_path in entry.paths.items():
+                    if slot not in target_slots:
+                        continue
+                    try:
+                        ugctex.write_companion_files(new_img, canvas_path)
+                        companion_count += 1
+                    except Exception:
+                        pass
         except Exception:
             messagebox.showerror('Replace failed', traceback.format_exc())
             return
@@ -1336,7 +1414,7 @@ class App(ctk.CTk):
         self._show_detail(entry)
         self._refresh_row_thumb(entry)
         slots_str = '+'.join(sorted(target_slots))
-        extra = f' + ugctex/thumb' if companion_count else ''
+        extra = f' + {companion_count} companion set(s)' if companion_count else ''
         self._set_status(
             f"Replaced {entry.base_name} in {n} slot(s) [{slots_str}]{extra}.",
             SUCCESS)
@@ -1346,7 +1424,7 @@ class App(ctk.CTk):
         if not entry:
             return
         dest = filedialog.asksaveasfilename(
-            title=f'Export {entry.base_name} as PNG',
+            title=f'Export {entry.base_name} texture sheet as PNG',
             defaultextension='.png',
             initialfile=f'{entry.base_name}.png',
             filetypes=[('PNG', '*.png'), ('All files', '*.*')],

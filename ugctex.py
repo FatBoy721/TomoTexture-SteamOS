@@ -5,7 +5,7 @@ Adapted from farbensplasch/tomodachi-texture-tool (MIT).
 The game expects three files per UGC item:
   - *.canvas.zs
   - *.ugctex.zs   - 512x512 DXT1 swizzled, or 384x384 DXT1 for some foods
-  - *_Thumb.ugctex.zs - 256x256 DXT5 swizzled
+  - *_Thumb_ugctex.zs - 256x256 DXT5 swizzled
 """
 
 import io
@@ -149,7 +149,9 @@ def write_companion_files(img: Image.Image, canvas_path: Path) -> tuple[Path, Pa
     parent = canvas_path.parent
 
     ugctex_path = parent / f"{stem}.ugctex.zs"
-    thumb_path = parent / f"{stem}_Thumb.ugctex.zs"
+    thumb_underscore = parent / f"{stem}_Thumb_ugctex.zs"
+    thumb_dot = parent / f"{stem}_Thumb.ugctex.zs"
+    thumb_path = thumb_dot if thumb_dot.exists() and not thumb_underscore.exists() else thumb_underscore
 
     ugctex_data = zstd_compress(png_to_ugctex(img.copy(), _detect_ugctex_size(ugctex_path)))
     thumb_data = zstd_compress(png_to_thumb(img.copy()))
