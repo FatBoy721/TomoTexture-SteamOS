@@ -57,7 +57,7 @@ CANVAS_SIZE_CANDIDATES = (
     (1024, 512),
     (512, 1024),
 )
-APP_VERSION = 'v1.0.2'
+APP_VERSION = 'v1.0.3'
 LATEST_RELEASE_API = 'https://api.github.com/repos/FatBoy721/TomoTexture-SteamOS/releases/latest'
 RELEASES_URL = 'https://github.com/FatBoy721/TomoTexture-SteamOS/releases/latest'
 PREVIEW_SIZE = 360
