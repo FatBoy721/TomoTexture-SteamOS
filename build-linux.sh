@@ -46,6 +46,7 @@ pyinstaller \
   --clean \
   --name "${APP_NAME}" \
   --add-data "${ICON_PNG}:." \
+  --collect-data "certifi" \
   --hidden-import "PIL._tkinter_finder" \
   --windowed \
   "${ENTRY}"

@@ -2,3 +2,4 @@ pillow>=10.0.0
 numpy>=1.24.0
 zstandard>=0.22.0
 customtkinter>=5.2.0
+certifi>=2024.0.0

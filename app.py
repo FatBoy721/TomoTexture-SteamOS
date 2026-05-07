@@ -7,6 +7,7 @@ import platform
 import webbrowser
 import math
 import json
+import ssl
 import threading
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,11 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import zstandard as zstd
 from PIL import Image, ImageTk
+
+try:
+    import certifi
+except ImportError:
+    certifi = None
 
 import swizzle
 import ugctex
@@ -919,7 +925,7 @@ class App(ctk.CTk):
                     'User-Agent': f'TomoTexture/{APP_VERSION}',
                 },
             )
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=10, context=self._ssl_context()) as response:
                 data = json.loads(response.read().decode('utf-8'))
             latest = data.get('tag_name', '').strip()
             release_url = data.get('html_url') or RELEASES_URL
@@ -957,6 +963,12 @@ class App(ctk.CTk):
             'Update check failed',
             f'Could not check GitHub releases.\n\n{error}',
         )
+
+    @staticmethod
+    def _ssl_context():
+        if certifi is not None:
+            return ssl.create_default_context(cafile=certifi.where())
+        return ssl.create_default_context()
 
     @staticmethod
     def _version_tuple(version: str) -> tuple[int, ...]:
@@ -1041,15 +1053,12 @@ class App(ctk.CTk):
         card = _card(parent)
         card.grid(row=0, column=1, sticky="nsew")
 
-        self._detail_inner = ctk.CTkFrame(card, fg_color="transparent")
-        self._detail_inner.pack(fill="both", expand=True, padx=20, pady=20)
-
-        self._preview_lbl = tk.Label(
-            self._detail_inner, text="", bd=0, highlightthickness=0,
-            width=PREVIEW_SIZE, height=PREVIEW_SIZE,
+        self._detail_inner = ctk.CTkScrollableFrame(
+            card, fg_color="transparent",
+            scrollbar_button_color=BORDER,
+            scrollbar_button_hover_color=MUTED,
         )
-        self._preview_lbl.pack(pady=(0, 12))
-        self._sync_preview_bg()
+        self._detail_inner.pack(fill="both", expand=True, padx=12, pady=12)
 
         self._name_lbl = _lbl(self._detail_inner, "Select a texture from the list",
                               size=14, weight="bold", color=MUTED)
@@ -1109,6 +1118,13 @@ class App(ctk.CTk):
             font=ctk.CTkFont(size=11), height=30, state="disabled",
         )
         self._btn_clear.pack(anchor="w", pady=(14, 0))
+
+        self._preview_lbl = tk.Label(
+            self._detail_inner, text="", bd=0, highlightthickness=0,
+            width=PREVIEW_SIZE, height=PREVIEW_SIZE,
+        )
+        self._preview_lbl.pack(pady=(18, 0))
+        self._sync_preview_bg()
 
     def _build_status(self, parent):
         bar = ctk.CTkFrame(parent, fg_color="transparent", height=28)
